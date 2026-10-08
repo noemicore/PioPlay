@@ -24,3 +24,9 @@ export const hex = (c: string): number => parseInt(c.slice(1), 16);
 /** Tamaño lógico de la pantalla (teléfono vertical). */
 export const WIDTH = 390;
 export const HEIGHT = 844;
+
+/**
+ * Press Start 2P dibuja las vocales mayúsculas con tilde como minúsculas
+ * ("PíO"), así que en esa fuente las escribimos sin tilde. La Ñ sí se ve bien.
+ */
+export const pixelText = (s: string): string => s.toUpperCase().normalize('NFD').replace(/́/g, '').normalize('NFC');
