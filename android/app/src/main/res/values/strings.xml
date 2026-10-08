@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pío</string>
+    <string name="title_activity_main">Pío</string>
+    <string name="package_name">com.noemicore.pio</string>
+    <string name="custom_url_scheme">com.noemicore.pio</string>
+</resources>
