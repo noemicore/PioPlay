@@ -14,7 +14,31 @@ export const PALETTE: Record<string, string> = {
   P: '#ff9fb4', // mejillas
   H: '#ff4d6d', // corazón
   h: '#ffb3c1', // brillo del corazón
+  R: '#d6334a', // sombrero
+  r: '#8f1d30',
+  B: '#ff5fa2', // moño
+  b: '#b0124f',
+  S: '#3b82f6', // bufanda
+  s: '#1e4fb8',
+  G: '#1a1a1a', // gafas
+  g: '#ffffff',
+  w: '#fff4d6', // huevo
+  c: '#e7d9b5',
+  n: '#ffd23f', // maíz y monedas
+  m: '#e0a420',
+  v: '#3fa34d', // hojas
+  p: '#ff8fab', // gusano
+  e: '#e63946', // fresa
+  u: '#4fa3ff', // luna y mariposa
+  f: '#ff5fa2', // flores
+  t: '#3fa34d', // cactus
+  T: '#2f7a3a',
 };
+
+/** Crea todas las texturas de un mapa clave → filas. */
+export function addPixelTextures(scene: Phaser.Scene, sprites: Record<string, readonly string[]>): void {
+  for (const [key, rows] of Object.entries(sprites)) addPixelTexture(scene, key, rows);
+}
 
 /** Agrega un contorno alrededor de todo lo que no sea transparente ni patas. */
 export function outline(rows: readonly string[]): string[] {
