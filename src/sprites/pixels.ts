@@ -29,7 +29,10 @@ export const PALETTE: Record<string, string> = {
   v: '#3fa34d', // hojas
   p: '#ff8fab', // gusano
   e: '#e63946', // fresa
-  u: '#4fa3ff', // luna
+  u: '#4fa3ff', // luna y mariposa
+  f: '#ff5fa2', // flores
+  t: '#3fa34d', // cactus
+  T: '#2f7a3a',
 };
 
 /** Crea todas las texturas de un mapa clave → filas. */

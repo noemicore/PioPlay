@@ -5,6 +5,8 @@ import { type Food, type PetState, caress, feed, newPet } from './pet';
 
 export type OutfitId = 'none' | 'hat' | 'bow' | 'scarf' | 'glasses';
 export type BadgeId = 'fed' | 'happy' | 'rested' | 'streak7' | 'fashion' | 'gamer';
+export type MinigameId = 'runner' | 'bugs';
+export const MINIGAMES: readonly MinigameId[] = ['runner', 'bugs'];
 
 export interface Outfit {
   id: OutfitId;
@@ -33,7 +35,7 @@ export const BADGES: readonly Badge[] = [
   { id: 'rested', name: 'Dulces sueños', desc: 'Deja que Pío duerma hasta tener 80 de energía.' },
   { id: 'streak7', name: 'Racha 7 días', desc: 'Cuida a Pío 7 días seguidos.' },
   { id: 'fashion', name: 'Fashion', desc: 'Viste a Pío con alguna prenda.' },
-  { id: 'gamer', name: 'Gamer', desc: 'Juega los minijuegos con Pío.' },
+  { id: 'gamer', name: 'Gamer', desc: 'Juega los dos minijuegos con Pío.' },
 ];
 
 export const DAILY_COINS = 10;
@@ -51,6 +53,11 @@ export interface GameState {
   badges: BadgeId[];
   /** Momentos de las caricias de la última hora (para el límite). */
   caresses: number[];
+  /** Minijuegos jugados al menos una vez. */
+  played: MinigameId[];
+  /** Mejor puntaje de cada minijuego. */
+  best: Partial<Record<MinigameId, number>>;
+  settings: { sound: boolean; notifications: boolean };
 }
 
 export function newGame(now: number): GameState {
@@ -63,6 +70,9 @@ export function newGame(now: number): GameState {
     streak: { count: 0, lastDay: null },
     badges: [],
     caresses: [],
+    played: [],
+    best: {},
+    settings: { sound: true, notifications: true },
   };
 }
 
@@ -106,7 +116,7 @@ export function checkIn(state: GameState, now: number): { state: GameState; rewa
 
 export type ActionResult =
   | { ok: true; state: GameState }
-  | { ok: false; reason: 'dormido' | 'lleno' | 'sin-monedas' | 'cansado-de-mimos' | 'no-la-tienes' };
+  | { ok: false; reason: 'dormido' | 'lleno' | 'sin-monedas' | 'cansado-de-mimos' | 'no-la-tienes' | 'sin-energia' };
 
 export function feedPet(state: GameState, food: Food): ActionResult {
   if (state.coins < food.cost) return { ok: false, reason: 'sin-monedas' };
@@ -139,12 +149,13 @@ export function wear(state: GameState, id: OutfitId): ActionResult {
 /** Insignias que el estado actual merece (las ya ganadas no se pierden). */
 export function earnedBadges(state: GameState): BadgeId[] {
   const { pet } = state;
-  const checks: Record<Exclude<BadgeId, 'gamer'>, boolean> = {
+  const checks: Record<BadgeId, boolean> = {
     fed: pet.food >= 80,
     happy: pet.joy >= 80,
     rested: pet.energy >= 80 && pet.sleeping,
     streak7: state.streak.count >= 7,
     fashion: state.outfit !== 'none',
+    gamer: MINIGAMES.every((g) => state.played.includes(g)),
   };
   const earned = (Object.keys(checks) as (keyof typeof checks)[]).filter((id) => checks[id]);
   return earned.filter((id) => !state.badges.includes(id));
@@ -155,4 +166,56 @@ export function awardBadges(state: GameState): { state: GameState; added: BadgeI
   const added = earnedBadges(state);
   if (added.length === 0) return { state, added };
   return { state: { ...state, badges: [...state.badges, ...added] }, added };
+}
+
+// ---------- minijuegos (GDD, sección 4) ----------
+
+export const PLAY_ENERGY_COST = 10;
+export const MIN_ENERGY_TO_PLAY = 15;
+
+/** ¿Pío quiere jugar? Dormido o muy cansado, no. */
+export function canPlay(state: GameState): ActionResult {
+  if (state.pet.sleeping) return { ok: false, reason: 'dormido' };
+  if (state.pet.energy < MIN_ENERGY_TO_PLAY) return { ok: false, reason: 'sin-energia' };
+  return { ok: true, state };
+}
+
+export interface Reward {
+  joy: number;
+  coins: number;
+  best: boolean;
+}
+
+export function rewardFor(points: number): { joy: number; coins: number } {
+  return { joy: Math.min(40, 10 + Math.floor(points / 10)), coins: Math.floor(points / 5) };
+}
+
+/** Al terminar una partida: Pío se alegra, se cansa un poco y ganas monedas. */
+export function finishMinigame(state: GameState, game: MinigameId, points: number): { state: GameState; reward: Reward } {
+  const { joy, coins } = rewardFor(points);
+  const prevBest = state.best[game] ?? 0;
+  const pet = state.pet;
+  return {
+    state: {
+      ...state,
+      coins: state.coins + coins,
+      pet: {
+        ...pet,
+        joy: Math.min(100, pet.joy + joy),
+        energy: Math.max(0, pet.energy - PLAY_ENERGY_COST),
+      },
+      played: state.played.includes(game) ? state.played : [...state.played, game],
+      best: { ...state.best, [game]: Math.max(prevBest, points) },
+    },
+    reward: { joy, coins, best: points > prevBest },
+  };
+}
+
+export function setSetting(state: GameState, key: keyof GameState['settings'], value: boolean): GameState {
+  return { ...state, settings: { ...state.settings, [key]: value } };
+}
+
+export function rename(state: GameState, rawName: string): GameState {
+  const name = cleanName(rawName);
+  return name ? { ...state, pet: { ...state.pet, name } } : state;
 }

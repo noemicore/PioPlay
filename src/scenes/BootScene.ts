@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BADGE_ICONS, COIN, EGG, EGG_CRACKS, FACE_IDS, FOOD_ICONS, HEART, OUTFIT_IDS, chickKey, chickRows } from '../sprites/chick';
+import { BADGE_ICONS, BUG_SPRITES, COIN, EGG, EGG_CRACKS, FACE_IDS, FOOD_ICONS, HEART, OUTFIT_IDS, SIDE_FRAMES, chickKey, chickRows } from '../sprites/chick';
 import { addPixelTextures } from '../sprites/pixels';
 import { getGame } from '../store';
 
@@ -16,6 +16,8 @@ export class BootScene extends Phaser.Scene {
       egg: EGG,
       'egg-crack-1': EGG_CRACKS[0],
       'egg-crack-2': EGG_CRACKS[1],
+      ...SIDE_FRAMES,
+      ...BUG_SPRITES,
     };
     for (const face of FACE_IDS) for (const outfit of OUTFIT_IDS) sprites[chickKey(face, outfit)] = chickRows(face, outfit);
     for (const [id, rows] of Object.entries(FOOD_ICONS)) sprites[`food-${id}`] = rows;

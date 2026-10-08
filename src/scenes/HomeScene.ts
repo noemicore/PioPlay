@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { type ActionResult, BADGES, type BadgeId, type GameState, OUTFITS, buyOutfit, caressPet, checkIn, feedPet, wear } from '../core/game';
+import { playMusic, sfx } from '../audio';
+import { type ActionResult, BADGES, type BadgeId, type GameState, type MinigameId, OUTFITS, buyOutfit, canPlay, caressPet, checkIn, feedPet, wear } from '../core/game';
 import { FOODS, type Food, type StatName, mood, setSleeping, speech } from '../core/pet';
 import { type ChickFace, chickKey } from '../sprites/chick';
 import { getGame, setGame, tickGame } from '../store';
@@ -16,11 +17,17 @@ const STATS: { key: StatName; label: string; color: string }[] = [
   { key: 'energy', label: 'ENERGÍA', color: COLORS.energy },
 ];
 
-type Tab = 'food' | 'dress' | 'sleep';
+type Tab = 'food' | 'dress' | 'play' | 'sleep';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'food', label: 'COMIDA' },
   { id: 'dress', label: 'ROPA' },
+  { id: 'play', label: 'JUGAR' },
   { id: 'sleep', label: 'DORMIR' },
+];
+
+const GAMES: { id: MinigameId; scene: string; title: string; name: string; sub: string }[] = [
+  { id: 'runner', scene: 'runner', title: 'PÍO CORRE', name: 'Pío corre', sub: 'Salta los cactus' },
+  { id: 'bugs', scene: 'bugs', title: 'BICHOS', name: 'Bichos', sub: 'Atrápalos a todos' },
 ];
 
 const FAIL_TEXT: Record<Exclude<ActionResult, { ok: true }>['reason'], string> = {
@@ -29,6 +36,7 @@ const FAIL_TEXT: Record<Exclude<ActionResult, { ok: true }>['reason'], string> =
   'sin-monedas': 'Faltan monedas…',
   'cansado-de-mimos': 'Ya me mimaste mucho',
   'no-la-tienes': 'Faltan monedas…',
+  'sin-energia': 'Estoy muy cansado…',
 };
 
 export class HomeScene extends Phaser.Scene {
@@ -49,8 +57,15 @@ export class HomeScene extends Phaser.Scene {
   private outfitButtons = new Map<string, PixelButton>();
   private sleepButton!: PixelButton;
 
+  private justPlayed = false;
+  private playHint!: Phaser.GameObjects.Text;
+
   constructor() {
     super('home');
+  }
+
+  init(data: { played?: boolean }): void {
+    this.justPlayed = !!data?.played;
   }
 
   create(): void {
@@ -70,7 +85,9 @@ export class HomeScene extends Phaser.Scene {
     this.createTabs();
     this.createFoodPanel();
     this.createDressPanel();
+    this.createPlayPanel();
     this.createSleepPanel();
+    playMusic('home');
 
     this.announce(tickGame(true));
     this.dailyCheckIn();
@@ -86,6 +103,7 @@ export class HomeScene extends Phaser.Scene {
     document.addEventListener('visibilitychange', onVisibility);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => document.removeEventListener('visibilitychange', onVisibility));
 
+    if (this.justPlayed) this.react('happy', '¡Qué divertido!');
     this.render();
   }
 
@@ -123,7 +141,7 @@ export class HomeScene extends Phaser.Scene {
 
   private createTabs(): void {
     TABS.forEach((t, i) => {
-      const button = new PixelButton(this, { x: 16 + i * 122, y: 558, w: 114, h: 44, text: t.label, fontSize: 10, onTap: () => this.selectTab(t.id) });
+      const button = new PixelButton(this, { x: 16 + i * 92, y: 558, w: 84, h: 44, text: t.label, fontSize: 9, onTap: () => this.selectTab(t.id) });
       this.tabButtons.set(t.id, button);
     });
   }
@@ -173,6 +191,28 @@ export class HomeScene extends Phaser.Scene {
     });
   }
 
+  private createPlayPanel(): void {
+    const panel = this.panel('play');
+    GAMES.forEach((g, i) => {
+      const b = new PixelButton(this, {
+        x: 16 + i * 183,
+        y: 624,
+        w: 175,
+        h: 120,
+        text: `${g.title}\n\n${g.sub}`,
+        fontSize: 8,
+        fill: COLORS.cream,
+        onTap: () => this.onPlay(g.scene),
+      });
+      b.label.setLineSpacing(4);
+      panel.add(b);
+    });
+    this.playHint = this.add
+      .text(WIDTH / 2, 790, '', { fontFamily: FONT_TEXT, fontSize: '22px', color: COLORS.cream, align: 'center' })
+      .setOrigin(0.5);
+    panel.add(this.playHint);
+  }
+
   private createSleepPanel(): void {
     const panel = this.panel('sleep');
     this.sleepButton = new PixelButton(this, { x: 16, y: 640, w: WIDTH - 32, h: 96, fontSize: 14, onTap: () => this.onToggleSleep() });
@@ -187,6 +227,7 @@ export class HomeScene extends Phaser.Scene {
   // ---------- acciones ----------
 
   private selectTab(tab: Tab): void {
+    sfx('tap');
     this.tab = tab;
     this.render();
   }
@@ -194,6 +235,7 @@ export class HomeScene extends Phaser.Scene {
   /** Aplica una acción: si sale bien guarda y anuncia insignias; si no, Pío lo dice. */
   private apply(result: ActionResult, success?: { face: ChickFace; text: string }): boolean {
     if (!result.ok) {
+      sfx('error');
       this.react('idle', FAIL_TEXT[result.reason]);
       return false;
     }
@@ -204,12 +246,16 @@ export class HomeScene extends Phaser.Scene {
   }
 
   private onFeed(food: Food): void {
-    if (this.apply(feedPet(getGame(), food), { face: 'happy', text: '¡Ñam ñam!' })) this.hop();
+    if (this.apply(feedPet(getGame(), food), { face: 'happy', text: '¡Ñam ñam!' })) {
+      sfx('nam');
+      this.hop();
+    }
   }
 
   private onCaress(): void {
     if (getGame().pet.sleeping) return;
     if (this.apply(caressPet(getGame(), Date.now()), { face: 'happy', text: '¡Te quiero!' })) {
+      sfx('pio');
       this.hop();
       this.floatHeart();
     }
@@ -224,7 +270,14 @@ export class HomeScene extends Phaser.Scene {
     }
     const isNew = !game.owned.includes(id);
     const text = id === 'none' ? '¡Así estoy bien!' : isNew ? '¡Gracias! ¿Me veo bien?' : '¿Me veo bien?';
-    this.apply(wear(bought.state, id), { face: 'happy', text });
+    if (this.apply(wear(bought.state, id), { face: 'happy', text })) sfx(isNew && id !== 'none' ? 'coin' : 'pio');
+  }
+
+  private onPlay(scene: string): void {
+    if (this.apply(canPlay(getGame()))) {
+      sfx('tap');
+      this.scene.start(scene);
+    }
   }
 
   private onToggleSleep(): void {
@@ -237,6 +290,7 @@ export class HomeScene extends Phaser.Scene {
     const { state, reward } = checkIn(getGame(), Date.now());
     if (reward === 0) return;
     this.announce(setGame(state));
+    sfx('coin');
     const days = state.streak.count;
     toast(this, `+${reward} monedas · racha de ${days} ${days === 1 ? 'día' : 'días'}`);
   }
@@ -303,5 +357,7 @@ export class HomeScene extends Phaser.Scene {
       button.setFill(worn ? COLORS.yellow : owned ? COLORS.cream : COLORS.creamDim);
     }
     this.sleepButton.setText(night ? 'DESPERTAR' : 'DORMIR');
+    const best = GAMES.map((g) => `${g.name}: ${game.best[g.id] ?? 0}`).join('   ');
+    this.playHint.setText(night ? `Shh… ${pet.name} duerme` : `Cada partida cansa un poco a ${pet.name}\nRécords · ${best}`);
   }
 }

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { MAX_NAME, checkIn, hatch } from '../core/game';
+import { askNotificationPermission } from '../native';
 import { chickKey } from '../sprites/chick';
 import { getGame, setGame } from '../store';
 import { COLORS, FONT_TEXT, FONT_TITLE, HEIGHT, WIDTH, hex } from '../theme';
@@ -71,7 +72,9 @@ export class HatchScene extends Phaser.Scene {
       const now = Date.now();
       input.blur();
       setGame(checkIn(hatch(getGame(), input.value, now), now).state);
-      this.scene.start('home', { hatched: true });
+      // Buen momento para pedir permiso de avisos: Pío acaba de nacer.
+      void askNotificationPermission();
+      this.scene.start('home');
     };
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') done();

@@ -107,3 +107,25 @@ export const BADGE_ICONS: Record<string, string[]> = {
   fashion: ['..RRRR..', '..RRRR..', '..RRRR..', '..rrrr..', 'RRRRRRRR', '........', '........', '........'],
   gamer: ['...KK...', '...KK...', '....K...', '....K...', '.KKKKKK.', 'KKeKKuKK', 'KKKKKKKK', '.KKKKKK.'],
 };
+
+// Pío de lado para Pío corre (14×14), del prototipo.
+const SIDE = [
+  '..............', '.....YYYY.....', '....YYYYYY....', '....YYYYKYY...', '....YYYYYYOO..', '....YYYYYYO...',
+  '..YYYYYYYYY...', '.YYyyYYYYYY...', '.YyyyYYYYYY...', '..YyYYYYYYY...', '...YYYYYYYY...',
+  '.....L..L.....', '....LL.LL.....', '..............',
+];
+export const SIDE_FRAMES = {
+  'side-a': outline(SIDE),
+  'side-b': outline([...SIDE.slice(0, 11), '......L.L.....', '.....LL.LL....', '..............']),
+  // Ojo en X al chocar.
+  'side-hit': outline([...SIDE.slice(0, 3), '....YYYYKYK...', ...SIDE.slice(4)]),
+};
+
+const LADY = ['..K..K..', '...KK...', '.eeKKee.', 'eKeKKeKe', 'eeeKKeee', 'eKeKKeKe', '.eeKKee.', '..K..K..'];
+export const BUG_SPRITES = {
+  'bug-lady': LADY,
+  'bug-moth': ['uu....uu', 'uuu..uuu', 'uuuKKuuu', '.uuKKuu.', '.ssKKss.', 'sssKKsss', 'ss.KK.ss', '........'],
+  'bug-fly': ['........', '.gg..gg.', 'gggKKggg', '.gKKKKg.', '..KRRK..', '..KKKK..', '...KK...', '........'],
+  'bug-gold': LADY.map((r) => r.replace(/e/g, 'n').replace(/K/g, 'm')),
+};
+

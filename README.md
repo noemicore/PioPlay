@@ -2,6 +2,16 @@
 
 Pío es un pollito pixel art que vive en tu teléfono: lo alimentas, lo acaricias, lo mandas a dormir y juegas minijuegos con él.
 
+## Qué hay en el MVP
+
+- Pío nace de un huevo y le pones nombre.
+- Comida, alegría y energía bajan con el reloj real, también con la app cerrada (nunca bajan de 10 mientras está cerrada y Pío no se muere).
+- Comida (maíz gratis, gusano y fresa con monedas), caricias, ropa y dormir.
+- Minijuegos **Pío corre** y **Bichos**: dan alegría y monedas y cansan a Pío.
+- Racha diaria, 6 insignias y perfil con ajustes (sonido, avisos, nombre).
+- Música y sonidos chiptune generados en el juego.
+- Avisos en el teléfono cuando Pío tiene hambre o hace un día que no lo visitas.
+
 ## Instalar el APK en tu Android
 
 1. Abre la pestaña **Actions** del repositorio y entra a la última ejecución verde de **CI**.
@@ -32,7 +42,11 @@ cd android && ./gradlew assembleDebug
 
 - `src/core/`: reglas del juego sin dependencias de Phaser (barras de Pío, guardado). Aquí van las pruebas.
 - `src/sprites/`: sprites pixel art definidos como filas de texto, como en el prototipo.
-- `src/scenes/`: pantallas de Phaser.
+- `src/scenes/`: pantallas de Phaser (huevo, principal, perfil y minijuegos).
+- `src/core/minigames/`: reglas de los minijuegos, con pruebas.
+- `src/audio.ts`: música y efectos de sonido.
+- `src/native.ts`: avisos y botón Atrás de Android.
+- `scripts/generate-icons.py`: genera el ícono de la app desde el sprite de Pío.
 - `android/`: proyecto Android generado por Capacitor.
 - `.github/workflows/ci.yml`: pruebas y generación del APK en cada cambio.
 

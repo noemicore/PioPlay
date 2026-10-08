@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CARESSES_PER_HOUR, DAILY_COINS, START_COINS, awardBadges, buyOutfit, caressPet, checkIn, cleanName, dayKey,
-  feedPet, hatch, newGame, wear,
+  CARESSES_PER_HOUR, DAILY_COINS, START_COINS, awardBadges, buyOutfit, canPlay, caressPet, checkIn, cleanName, dayKey,
+  feedPet, finishMinigame, hatch, newGame, rename, rewardFor, wear,
 } from './game';
 import { FOODS, setSleeping } from './pet';
 
@@ -130,5 +130,41 @@ describe('insignias', () => {
   it('racha de 7 días', () => {
     const g = { ...newGame(0), streak: { count: 7, lastDay: '2026-10-08' } };
     expect(awardBadges(g).added).toContain('streak7');
+  });
+});
+
+describe('minijuegos', () => {
+  it('no quiere jugar dormido ni muy cansado', () => {
+    expect(canPlay({ ...newGame(0), pet: setSleeping(newGame(0).pet, true) })).toEqual({ ok: false, reason: 'dormido' });
+    expect(canPlay({ ...newGame(0), pet: { ...newGame(0).pet, energy: 10 } })).toEqual({ ok: false, reason: 'sin-energia' });
+    expect(canPlay(newGame(0)).ok).toBe(true);
+  });
+
+  it('terminar una partida da alegría y monedas y cansa', () => {
+    const g = { ...newGame(0), pet: { ...newGame(0).pet, joy: 50, energy: 60 } };
+    const r = finishMinigame(g, 'bugs', 27);
+    expect(r.reward).toEqual({ joy: 12, coins: 5, best: true });
+    expect(r.state.pet.joy).toBe(62);
+    expect(r.state.pet.energy).toBe(50);
+    expect(r.state.coins).toBe(START_COINS + 5);
+    expect(r.state.best.bugs).toBe(27);
+    expect(finishMinigame(r.state, 'bugs', 10).reward.best).toBe(false);
+  });
+
+  it('la alegría por partida tiene tope de 40', () => {
+    expect(rewardFor(1000).joy).toBe(40);
+    expect(rewardFor(0)).toEqual({ joy: 10, coins: 0 });
+  });
+
+  it('la insignia Gamer pide jugar los dos minijuegos', () => {
+    const one = finishMinigame(newGame(0), 'runner', 3).state;
+    expect(awardBadges(one).added).not.toContain('gamer');
+    const both = finishMinigame(one, 'bugs', 3).state;
+    expect(awardBadges(both).added).toContain('gamer');
+  });
+
+  it('cambiar el nombre ignora nombres vacíos', () => {
+    expect(rename(newGame(0), '  Coco ').pet.name).toBe('Coco');
+    expect(rename(newGame(0), '   ').pet.name).toBe('Pío');
   });
 });
