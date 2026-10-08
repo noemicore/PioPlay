@@ -1,7 +1,10 @@
 import '@fontsource/press-start-2p';
 import '@fontsource/vt323';
 import Phaser from 'phaser';
+import { BootScene } from './scenes/BootScene';
+import { HatchScene } from './scenes/HatchScene';
 import { HomeScene } from './scenes/HomeScene';
+import { ProfileScene } from './scenes/ProfileScene';
 import { COLORS, HEIGHT, WIDTH } from './theme';
 
 async function start(): Promise<void> {
@@ -16,7 +19,9 @@ async function start(): Promise<void> {
     backgroundColor: COLORS.ink,
     pixelArt: true,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: [HomeScene],
+    // Permite poner un campo de texto HTML (el nombre de Pío) sobre el juego.
+    dom: { createContainer: true },
+    scene: [BootScene, HatchScene, HomeScene, ProfileScene],
   });
 }
 
